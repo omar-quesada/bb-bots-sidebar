@@ -5,7 +5,9 @@ description: Use Bots Sidebar to find bots, understand their private state and p
 
 # Bots Sidebar
 
-The runtime plugin ID is `bots-sidebar`; its CLI is `bb bots`.
+In this fork the Bots backend and UI run inside the BB Sidebar plugin
+(`bb-sidebar`, its **Bots** tab); the standalone plugin ID is `bots-sidebar`.
+Either way the CLI is `bb bots`.
 
 - Read public bot metadata with `bb bots list --json --limit 50 --offset 0`.
   Listing and @ mentions never send messages or expose private state.

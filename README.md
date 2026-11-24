@@ -1,5 +1,13 @@
 # Bots Sidebar
 
+> **Fork note (omar-quesada/bb-bots-sidebar).** A personal fork of
+> [tobi/bb-bots-sidebar](https://github.com/tobi/bb-bots-sidebar) by tobi, kept
+> for private use and not published. Branch `bb-sidebar-embed` exports the
+> backend (`registerBots`) and the UI (`BotsSidebar`, `registerBotThreadSlots`)
+> so [BB Sidebar](https://github.com/omar-quesada/bb-sidebar) can host them in a **Bots** tab.
+> The standalone plugin entry still works unchanged. Upstream changes are
+> merged into this branch and then pulled into BB Sidebar with `git subtree`.
+
 Requires BB 0.46.1 or newer (Plugin SDK 0.6.49). Conversation menus and archive
 buttons use BB's native thread actions, including confirmation, Undo, and actions
 from other plugins. Rows follow native titles, links, draft indicators, plugin

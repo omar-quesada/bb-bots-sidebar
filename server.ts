@@ -23,7 +23,26 @@ const CHANGED = "project-bots-changed";
 const START_MARKER = /^\[bb-bot-start:([a-f0-9-]{36})\]/;
 const sha256 = (content: string) => createHash("sha256").update(content).digest("hex");
 
+export interface RegisterBotsOptions {
+  /**
+   * Plugin ids that created bot conversations before this code moved into
+   * another plugin. Their threads count as this plugin's own starts.
+   */
+  legacyOriginPluginIds?: readonly string[];
+}
+
 export default async function plugin(bb: BbPluginApi) {
+  await registerBots(bb);
+}
+
+/**
+ * Registers the whole Bots backend (storage, RPC, CLI, agent tools, hooks,
+ * schedules) on `bb`. The standalone plugin calls it from its own factory; a
+ * host plugin that embeds the Bots UI calls it from its factory instead.
+ */
+export async function registerBots(bb: BbPluginApi, options: RegisterBotsOptions = {}) {
+  const ownOrigins = new Set([bb.pluginId, ...(options.legacyOriginPluginIds ?? [])]);
+  const ownOrigin = (originPluginId: string | null | undefined) => originPluginId != null && ownOrigins.has(originPluginId);
   const store = createBotStore(bb);
   const publish = () => bb.realtime.publish(CHANGED, { updatedAt: Date.now() });
   const state = createPrivateBotState(bb, store, publish);
@@ -151,7 +170,7 @@ export default async function plugin(bb: BbPluginApi) {
     if (existing) return existing;
     // Our creation request carries a durable explicit choice. A fire-and-forget
     // creation event must not let the project default claim it before dispatch.
-    if (atCreation && thread.originPluginId === bb.pluginId) return null;
+    if (atCreation && ownOrigin(thread.originPluginId)) return null;
     const inherited = thread.parentThreadId || thread.sourceThreadId ? await resolveOwner(thread.id, false) : null;
     if (inherited) {
       const adopted = store.adoptInherited(thread.id, inherited, await projectToJoinFor(thread, atCreation));
@@ -171,7 +190,7 @@ export default async function plugin(bb: BbPluginApi) {
         return adopted.botId;
       }
     }
-    if (thread.originPluginId === bb.pluginId || (!atCreation && thread.status !== "pending")) return null;
+    if (ownOrigin(thread.originPluginId) || (!atCreation && thread.status !== "pending")) return null;
     const assigned = store.bindProjectDefault(thread.id, thread.projectId, thread.createdAt);
     if (assigned) publish();
     return assigned;
@@ -274,7 +293,7 @@ export default async function plugin(bb: BbPluginApi) {
     for (const block of ctx.input.blocks) {
       if (block.type !== "text" || block.visibility !== "agent-only") continue;
       const token = block.text.match(START_MARKER)?.[1];
-      if (!token || ctx.thread.originPluginId !== bb.pluginId) continue;
+      if (!token || !ownOrigin(ctx.thread.originPluginId)) continue;
       const start = store.pendingStartContext(token);
       if (!start) continue;
       if (start.projectId === null) await validateConversationProject(store.require(start.botId), ctx.thread.projectId);

@@ -639,7 +639,7 @@ function RecentRow({
   );
 }
 
-function BotsSidebar({ activeThreadId, onNavigate }: PluginThreadListProps) {
+export function BotsSidebar({ activeThreadId, onNavigate }: PluginThreadListProps) {
   const sidebar = experimental_useSidebarThreads();
   const navigate = useBbNavigate();
   const portalScope = usePortalScopeProps();
@@ -1008,12 +1008,23 @@ function BotsSidebar({ activeThreadId, onNavigate }: PluginThreadListProps) {
   );
 }
 
-export default definePluginApp((app) => {
+type PluginAppRegistrar = Parameters<Parameters<typeof definePluginApp>[0]>[0];
+
+/**
+ * The Bots slots that sit beside any thread list: the thread header picker and
+ * the Info tab rows. A host plugin that embeds `BotsSidebar` in its own thread
+ * list registers these and skips `experimental_threadList`.
+ */
+export function registerBotThreadSlots(app: PluginAppRegistrar) {
   // These register whichever thread list is active, so any thread can be assigned.
   app.slots.experimental_threadHeaderAction({ id: "thread-bot", title: "Bot", component: ThreadBotHeaderAction });
   app.slots.experimental_threadInfoRow({ id: "thread-bot", group: experimental_THREAD_INFO_ROW_GROUPS.thread, component: ThreadBotInfoRow });
   // "0_bot" sorts before bb's own sections, so it sits right below the details rows.
   app.slots.experimental_threadInfoSection({ id: "thread-bot-prompt", group: "0_bot", component: ThreadBotPromptSection });
+}
+
+export default definePluginApp((app) => {
+  registerBotThreadSlots(app);
   app.slots.experimental_threadList({
     id: "bot-projects",
     title: "Bots Sidebar",
